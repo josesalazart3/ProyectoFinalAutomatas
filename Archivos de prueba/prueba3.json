@@ -1,0 +1,14 @@
+{
+    "input_alphabet": ["0", "1"],
+    "tape_alphabet": ["0", "1", "_"],
+    "states": ["q_start", "q_process", "q_accept", "q_reject"],
+    "initial_state": "q_start",
+    "accepting_states": ["q_accept"],
+    "transitions": [
+        ["q_start", "0", "q_process", "1", "R"],
+        ["q_start", "1", "q_process", "0", "R"],
+        ["q_process", "0", "q_process", "1", "R"],
+        ["q_process", "1", "q_process", "0", "R"],
+        ["q_process", "_", "q_accept", "_", "R"]
+    ]
+}

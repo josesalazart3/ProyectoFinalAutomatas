@@ -1,0 +1,14 @@
+{
+    "input_alphabet": ["x", "y"],
+    "tape_alphabet": ["x", "y", "_"],
+    "states": ["q_init", "q_loop", "q_done"],
+    "initial_state": "q_init",
+    "accepting_states": ["q_done"],
+    "transitions": [
+        ["q_init", "x", "q_loop", "y", "R"],
+        ["q_init", "y", "q_loop", "x", "R"],
+        ["q_loop", "x", "q_loop", "x", "R"],
+        ["q_loop", "y", "q_loop", "y", "R"],
+        ["q_loop", "_", "q_done", "_", "R"]
+    ]
+}

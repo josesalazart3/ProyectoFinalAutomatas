@@ -1,110 +1,133 @@
 import tkinter as tk
 from tkinter import messagebox
 import json
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 
 class TuringMachineSimulator:
     def __init__(self, root):
         self.root = root
         self.root.title("Simulador de Máquina de Turing")
+
+        # Crear un menú
+        self.menu = tk.Menu(self.root)
+        self.root.config(menu=self.menu)
+
+        # Crear la pestaña 'Archivo'
+        self.file_menu = tk.Menu(self.menu, tearoff=0)
+        self.menu.add_cascade(label="Archivo", menu=self.file_menu)
+        self.file_menu.add_command(label="Guardar configuración", command=self.save_configuration)
+        self.file_menu.add_command(label="Cargar configuración", command=self.load_configuration)
+
+        # Crear un frame principal con un canvas para permitir el desplazamiento
+        self.main_frame = ttk.Frame(self.root)
+        self.main_frame.pack(fill=tk.BOTH, expand=True)
+
+        self.canvas = tk.Canvas(self.main_frame)
+        self.scroll_y = ttk.Scrollbar(self.main_frame, orient="vertical", command=self.canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.canvas)
+
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+
+        self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scroll_y.set)
+
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
+
         self.transitions = []
         self.configuration = {}
         self.tape = []
         self.head_position = 0
         self.current_state = ""
+
         self.create_widgets()
 
     def create_widgets(self):
         # Área para ingresar el alfabeto de entrada
-        self.input_alphabet_label = tk.Label(self.root, text="Alfabeto de entrada (separado por comas):")
-        self.input_alphabet_label.pack()
-        self.input_alphabet_entry = tk.Entry(self.root)
-        self.input_alphabet_entry.pack()
+        self.input_alphabet_label = tk.Label(self.scrollable_frame, text="Alfabeto de entrada (separado por comas):")
+        self.input_alphabet_label.pack(pady=5)
+        self.input_alphabet_entry = tk.Entry(self.scrollable_frame, width=50)
+        self.input_alphabet_entry.pack(pady=5)
 
         # Área para ingresar el alfabeto de la cinta
-        self.tape_alphabet_label = tk.Label(self.root, text="Alfabeto de la cinta (separado por comas):")
-        self.tape_alphabet_label.pack()
-        self.tape_alphabet_entry = tk.Entry(self.root)
-        self.tape_alphabet_entry.pack()
+        self.tape_alphabet_label = tk.Label(self.scrollable_frame, text="Alfabeto de la cinta (separado por comas):")
+        self.tape_alphabet_label.pack(pady=5)
+        self.tape_alphabet_entry = tk.Entry(self.scrollable_frame, width=50)
+        self.tape_alphabet_entry.pack(pady=5)
 
         # Área para ingresar los estados
-        self.states_label = tk.Label(self.root, text="Estados (separados por comas):")
-        self.states_label.pack()
-        self.states_entry = tk.Entry(self.root)
-        self.states_entry.pack()
+        self.states_label = tk.Label(self.scrollable_frame, text="Estados (separados por comas):")
+        self.states_label.pack(pady=5)
+        self.states_entry = tk.Entry(self.scrollable_frame, width=50)
+        self.states_entry.pack(pady=5)
 
         # Campo para ingresar el estado inicial
-        self.initial_state_label = tk.Label(self.root, text="Estado inicial:")
-        self.initial_state_label.pack()
-        self.initial_state_entry = tk.Entry(self.root)
-        self.initial_state_entry.pack()
+        self.initial_state_label = tk.Label(self.scrollable_frame, text="Estado inicial:")
+        self.initial_state_label.pack(pady=5)
+        self.initial_state_entry = tk.Entry(self.scrollable_frame, width=50)
+        self.initial_state_entry.pack(pady=5)
 
         # Campo para ingresar los estados de aceptación
-        self.accepting_states_label = tk.Label(self.root, text="Estados de aceptación (separados por comas):")
-        self.accepting_states_label.pack()
-        self.accepting_states_entry = tk.Entry(self.root)
-        self.accepting_states_entry.pack()
+        self.accepting_states_label = tk.Label(self.scrollable_frame, text="Estados de aceptación (separados por comas):")
+        self.accepting_states_label.pack(pady=5)
+        self.accepting_states_entry = tk.Entry(self.scrollable_frame, width=50)
+        self.accepting_states_entry.pack(pady=5)
 
         # Área para ingresar las transiciones
-        self.transition_label = tk.Label(self.root, text="Agregar transición:")
-        self.transition_label.pack()
+        self.transition_label = tk.Label(self.scrollable_frame, text="Agregar transición:")
+        self.transition_label.pack(pady=10)
 
-        self.current_state_entry = tk.Entry(self.root)
+        self.current_state_entry = tk.Entry(self.scrollable_frame)
         self.current_state_entry.insert(0, "Estado actual")
-        self.current_state_entry.pack()
+        self.current_state_entry.pack(pady=5)
 
-        self.read_symbol_entry = tk.Entry(self.root)
+        self.read_symbol_entry = tk.Entry(self.scrollable_frame)
         self.read_symbol_entry.insert(0, "Símbolo leído")
-        self.read_symbol_entry.pack()
+        self.read_symbol_entry.pack(pady=5)
 
-        self.next_state_entry = tk.Entry(self.root)
+        self.next_state_entry = tk.Entry(self.scrollable_frame)
         self.next_state_entry.insert(0, "Estado siguiente")
-        self.next_state_entry.pack()
+        self.next_state_entry.pack(pady=5)
 
-        self.write_symbol_entry = tk.Entry(self.root)
+        self.write_symbol_entry = tk.Entry(self.scrollable_frame)
         self.write_symbol_entry.insert(0, "Símbolo nuevo")
-        self.write_symbol_entry.pack()
+        self.write_symbol_entry.pack(pady=5)
 
-        self.direction_entry = tk.Entry(self.root)
+        self.direction_entry = tk.Entry(self.scrollable_frame)
         self.direction_entry.insert(0, "Dirección (L/R)")
-        self.direction_entry.pack()
+        self.direction_entry.pack(pady=5)
 
-        self.add_transition_button = tk.Button(self.root, text="Agregar transición", command=self.add_transition)
-        self.add_transition_button.pack()
+        self.add_transition_button = tk.Button(self.scrollable_frame, text="Agregar transición", command=self.add_transition)
+        self.add_transition_button.pack(pady=5)
 
         # Área para mostrar las transiciones agregadas
-        self.transitions_display = tk.Label(self.root, text="Transiciones configuradas:")
-        self.transitions_display.pack()
-        self.transitions_listbox = tk.Listbox(self.root)
-        self.transitions_listbox.pack()
+        self.transitions_display = tk.Label(self.scrollable_frame, text="Transiciones configuradas:")
+        self.transitions_display.pack(pady=10)
+        self.transitions_listbox = tk.Listbox(self.scrollable_frame, width=80)
+        self.transitions_listbox.pack(pady=5)
 
         # Área para configurar la cinta y visualizar el cabezal
-        self.tape_label = tk.Label(self.root, text="Cinta (ingrese la cadena inicial):")
-        self.tape_label.pack()
-        self.tape_entry = tk.Entry(self.root)
-        self.tape_entry.pack()
+        self.tape_label = tk.Label(self.scrollable_frame, text="Cinta (ingrese la cadena inicial):")
+        self.tape_label.pack(pady=10)
+        self.tape_entry = tk.Entry(self.scrollable_frame, width=50)
+        self.tape_entry.pack(pady=5)
 
-        self.visualize_tape_button = tk.Button(self.root, text="Visualizar cinta", command=self.visualize_tape)
-        self.visualize_tape_button.pack()
+        self.visualize_tape_button = tk.Button(self.scrollable_frame, text="Visualizar cinta", command=self.visualize_tape)
+        self.visualize_tape_button.pack(pady=5)
 
-        self.tape_display = tk.Label(self.root, text="Cinta:")
-        self.tape_display.pack()
+        self.tape_display = tk.Label(self.scrollable_frame, text="Cinta:")
+        self.tape_display.pack(pady=5)
 
         # Botón para ejecutar la máquina paso a paso
-        self.step_button = tk.Button(self.root, text="Ejecutar paso", command=self.execute_step)
-        self.step_button.pack()
+        self.step_button = tk.Button(self.scrollable_frame, text="Ejecutar paso", command=self.execute_step)
+        self.step_button.pack(pady=5)
 
         # Label para mostrar el resultado de la ejecución
-        self.result_label = tk.Label(self.root, text="")
-        self.result_label.pack()
-
-        # Botón para guardar la configuración
-        self.save_button = tk.Button(self.root, text="Guardar configuración", command=self.save_configuration)
-        self.save_button.pack()
-
-        # Botón para cargar la configuración
-        self.load_button = tk.Button(self.root, text="Cargar configuración", command=self.load_configuration)
-        self.load_button.pack()
+        self.result_label = tk.Label(self.scrollable_frame, text="")
+        self.result_label.pack(pady=5)
 
     def add_transition(self):
         # Obtener los valores de las entradas

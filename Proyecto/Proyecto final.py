@@ -130,14 +130,12 @@ class TuringMachineSimulator:
         self.result_label.pack(pady=5)
 
     def add_transition(self):
-        # Obtener los valores de las entradas
         current_state = self.current_state_entry.get().strip()
         read_symbol = self.read_symbol_entry.get().strip()
         next_state = self.next_state_entry.get().strip()
         write_symbol = self.write_symbol_entry.get().strip()
         direction = self.direction_entry.get().strip().upper()
 
-        # Validar que los campos no estén vacíos y que la dirección sea válida
         if not current_state or not read_symbol or not next_state or not write_symbol:
             messagebox.showerror("Error", "Todos los campos deben estar completos.")
             return
@@ -145,11 +143,9 @@ class TuringMachineSimulator:
             messagebox.showerror("Error", "La dirección debe ser 'L' (izquierda) o 'R' (derecha).")
             return
 
-        # Agregar la transición a la lista
         transition = (current_state, read_symbol, next_state, write_symbol, direction)
         self.transitions.append(transition)
 
-        # Actualizar la visualización de las transiciones
         self.transitions_listbox.insert(tk.END, f"{transition[0]}, {transition[1]} -> {transition[2]}, {transition[3]}, {transition[4]}")
 
     def save_configuration(self):
@@ -168,7 +164,6 @@ class TuringMachineSimulator:
             'transitions': self.transitions
         }
 
-        # Abrir un cuadro de diálogo para guardar el archivo
         file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
         if file_path:
             with open(file_path, 'w') as json_file:
@@ -176,13 +171,11 @@ class TuringMachineSimulator:
             messagebox.showinfo("Éxito", "Configuración guardada correctamente.")
 
     def load_configuration(self):
-        # Abrir un cuadro de diálogo para cargar un archivo
         file_path = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
         if file_path:
             with open(file_path, 'r') as json_file:
                 self.configuration = json.load(json_file)
 
-            # Cargar la configuración en la interfaz
             self.input_alphabet_entry.delete(0, tk.END)
             self.input_alphabet_entry.insert(0, ', '.join(self.configuration['input_alphabet']))
 
@@ -203,53 +196,50 @@ class TuringMachineSimulator:
             for transition in self.transitions:
                 self.transitions_listbox.insert(tk.END, f"{transition[0]}, {transition[1]} -> {transition[2]}, {transition[3]}, {transition[4]}")
 
-            messagebox.showinfo("Éxito", "Configuración cargada correctamente.")
-
     def visualize_tape(self):
-        tape_string = self.tape_entry.get()
-        self.tape = list(tape_string)
+        input_tape = self.tape_entry.get().strip()
+        if not input_tape:
+            messagebox.showerror("Error", "La cinta no puede estar vacía.")
+            return
+        
+        self.tape = list(input_tape) + ['_']  # Agregar el símbolo de espacio al final
         self.head_position = 0
+        self.current_state = self.initial_state_entry.get().strip()
+
         self.update_tape_display()
-        self.result_label.config(text="")  # Reiniciar el resultado al visualizar la cinta
-        self.current_state = self.initial_state_entry.get().strip()  # Inicializar el estado actual
 
     def update_tape_display(self):
-        tape_visual = ''.join(self.tape)
-        head_visual = ' ' * self.head_position + '^'
-        self.tape_display.config(text=f"Cinta: {tape_visual}\nCabezal: {head_visual}\nEstado actual: {self.current_state}")
+        # Visualizar la cinta y el cabezal
+        tape_string = ''.join(self.tape)
+        head_marker = ' ' * self.head_position + '^'
+        self.tape_display.config(text=f"Cinta: {tape_string}\nCabezal: {head_marker}\nEstado actual: {self.current_state}")
 
     def execute_step(self):
-        if self.head_position < 0 or self.head_position >= len(self.tape):
-            messagebox.showerror("Error", "El cabezal ha salido de los límites de la cinta.")
+        if self.current_state in self.configuration.get('accepting_states', []):
+            self.result_label.config(text="La cadena ha sido aceptada.")
             return
-
-        # Si el estado actual no se ha inicializado, asigna el estado inicial
-        if not self.current_state:
-            self.current_state = self.initial_state_entry.get().strip()
-
-        current_symbol = self.tape[self.head_position]
-        transition_found = False
-
+        
         for transition in self.transitions:
-            if transition[0] == self.current_state and transition[1] == current_symbol:
-                self.current_state = transition[2]
-                self.tape[self.head_position] = transition[3]
-                self.head_position += -1 if transition[4] == 'L' else 1
+            if transition[0] == self.current_state and transition[1] == self.tape[self.head_position]:
+                # Ejecutar la transición
+                self.tape[self.head_position] = transition[3]  # Escribir símbolo
+                self.current_state = transition[2]  # Cambiar estado
+
+                # Mover el cabezal
+                if transition[4] == 'R':
+                    self.head_position += 1
+                    if self.head_position >= len(self.tape):  # Si el cabezal se sale de la cinta, añadir un espacio
+                        self.tape.append('_')
+                elif transition[4] == 'L':
+                    self.head_position -= 1
+                    if self.head_position < 0:  # Si el cabezal se sale de la cinta, añadir un espacio al principio
+                        self.tape.insert(0, '_')
+                        self.head_position = 0
+
                 self.update_tape_display()
-                transition_found = True
-                break
-
-        if not transition_found:
-            messagebox.showinfo("Fin de la simulación", "No hay transición disponible para el estado y símbolo actuales.")
-            self.result_label.config(text="Cadena rechazada.")
-            return
-
-        # Comprobar si el estado actual es un estado de aceptación
-        accepting_states = self.accepting_states_entry.get().split(',')
-        if self.current_state in accepting_states:
-            self.result_label.config(text="Cadena aceptada.")
-        else:
-            self.result_label.config(text="Cadena en ejecución...")
+                return
+        
+        self.result_label.config(text="No hay transición válida.")
 
 if __name__ == "__main__":
     root = tk.Tk()

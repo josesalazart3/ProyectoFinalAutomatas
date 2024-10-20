@@ -18,6 +18,11 @@ class TuringMachineSimulator:
         self.file_menu.add_command(label="Guardar configuración", command=self.save_configuration)
         self.file_menu.add_command(label="Cargar configuración", command=self.load_configuration)
 
+        # Crear la pestaña 'Ejecutar'
+        self.run_menu = tk.Menu(self.menu, tearoff=0)
+        self.menu.add_cascade(label="Ejecutar", menu=self.run_menu)
+        self.run_menu.add_command(label="Reiniciar", command=self.reset_tape)
+
         # Crear un frame principal con un canvas para permitir el desplazamiento
         self.main_frame = ttk.Frame(self.root)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
@@ -105,8 +110,8 @@ class TuringMachineSimulator:
 
         # Área para mostrar las transiciones agregadas
         self.transitions_display = tk.Label(self.scrollable_frame, text="Transiciones configuradas:")
-        self.transitions_display.pack(pady=5)
-        self.transitions_listbox = tk.Listbox(self.scrollable_frame, width=40)
+        self.transitions_display.pack(pady=10)
+        self.transitions_listbox = tk.Listbox(self.scrollable_frame, width=80)
         self.transitions_listbox.pack(pady=5)
 
         # Área para configurar la cinta y visualizar el cabezal
@@ -128,6 +133,14 @@ class TuringMachineSimulator:
         # Label para mostrar el resultado de la ejecución
         self.result_label = tk.Label(self.scrollable_frame, text="")
         self.result_label.pack(pady=5)
+
+        # Label para mostrar resultados en cuadros
+        self.accepted_label = tk.Label(self.scrollable_frame, text="La cadena ha sido aceptada.", bg="green", fg="black", width=40, height=2)
+        self.invalid_transition_label = tk.Label(self.scrollable_frame, text="No hay transición válida.", bg="red", fg="black", width=40, height=2)
+
+        # Esconder etiquetas de resultados
+        self.accepted_label.pack_forget()
+        self.invalid_transition_label.pack_forget()
 
     def add_transition(self):
         current_state = self.current_state_entry.get().strip()
@@ -202,45 +215,52 @@ class TuringMachineSimulator:
             messagebox.showerror("Error", "La cinta no puede estar vacía.")
             return
         
-        self.tape = list(input_tape) + ['_']  # Agregar el símbolo de espacio al final
+        self.tape = list(input_tape) + ['_']
         self.head_position = 0
         self.current_state = self.initial_state_entry.get().strip()
 
         self.update_tape_display()
 
     def update_tape_display(self):
-        # Visualizar la cinta y el cabezal con el símbolo en la posición del cabezal entre corchetes
         tape_with_head = ''.join(
             f"[{symbol}]" if i == self.head_position else symbol for i, symbol in enumerate(self.tape)
         )
         self.tape_display.config(text=f"Cinta: {tape_with_head}\nEstado actual: {self.current_state}")
 
     def execute_step(self):
+        # Limpiar etiquetas de resultados anteriores
+        self.accepted_label.pack_forget()
+        self.invalid_transition_label.pack_forget()
+
         if self.current_state in self.configuration.get('accepting_states', []):
-            self.result_label.config(text="La cadena ha sido aceptada.")
+            self.accepted_label.pack(pady=5)
             return
         
         for transition in self.transitions:
             if transition[0] == self.current_state and transition[1] == self.tape[self.head_position]:
-                # Ejecutar la transición
-                self.tape[self.head_position] = transition[3]  # Escribir símbolo
-                self.current_state = transition[2]  # Cambiar estado
+                self.tape[self.head_position] = transition[3]
+                self.current_state = transition[2]
 
-                # Mover el cabezal
                 if transition[4] == 'R':
                     self.head_position += 1
-                    if self.head_position >= len(self.tape):  # Si el cabezal se sale de la cinta, añadir un espacio
+                    if self.head_position >= len(self.tape):
                         self.tape.append('_')
                 elif transition[4] == 'L':
                     self.head_position -= 1
-                    if self.head_position < 0:  # Si el cabezal se sale de la cinta, añadir un espacio al principio
+                    if self.head_position < 0:
                         self.tape.insert(0, '_')
                         self.head_position = 0
 
                 self.update_tape_display()
                 return
         
-        self.result_label.config(text="No hay transición válida.")
+        self.invalid_transition_label.pack(pady=5)
+
+    def reset_tape(self):
+        self.tape_entry.delete(0, tk.END)
+        self.tape_display.config(text="Cinta:")
+        self.accepted_label.pack_forget()
+        self.invalid_transition_label.pack_forget()
 
 if __name__ == "__main__":
     root = tk.Tk()

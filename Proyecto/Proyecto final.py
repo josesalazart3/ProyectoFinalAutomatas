@@ -105,8 +105,8 @@ class TuringMachineSimulator:
 
         # Área para mostrar las transiciones agregadas
         self.transitions_display = tk.Label(self.scrollable_frame, text="Transiciones configuradas:")
-        self.transitions_display.pack(pady=10)
-        self.transitions_listbox = tk.Listbox(self.scrollable_frame, width=80)
+        self.transitions_display.pack(pady=5)
+        self.transitions_listbox = tk.Listbox(self.scrollable_frame, width=40)
         self.transitions_listbox.pack(pady=5)
 
         # Área para configurar la cinta y visualizar el cabezal
@@ -209,10 +209,11 @@ class TuringMachineSimulator:
         self.update_tape_display()
 
     def update_tape_display(self):
-        # Visualizar la cinta y el cabezal
-        tape_string = ''.join(self.tape)
-        head_marker = ' ' * self.head_position + '^'
-        self.tape_display.config(text=f"Cinta: {tape_string}\nCabezal: {head_marker}\nEstado actual: {self.current_state}")
+        # Visualizar la cinta y el cabezal con el símbolo en la posición del cabezal entre corchetes
+        tape_with_head = ''.join(
+            f"[{symbol}]" if i == self.head_position else symbol for i, symbol in enumerate(self.tape)
+        )
+        self.tape_display.config(text=f"Cinta: {tape_with_head}\nEstado actual: {self.current_state}")
 
     def execute_step(self):
         if self.current_state in self.configuration.get('accepting_states', []):
